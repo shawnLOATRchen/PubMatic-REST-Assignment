@@ -41,7 +41,7 @@ var MainPage = React.createClass({
     return (
       <div className="container">
         <div className="jumbotron">
-            <h1 className="display-4">REST CALL Assignment</h1>
+            <h1 className="display-4">REST API CALL Assignment</h1>
             <p className="lead">Author: Yuxiang(Shawn) Chen</p>
         </div>
         <div className="row btn-box">

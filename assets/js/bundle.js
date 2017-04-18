@@ -9619,7 +9619,7 @@ var MainPage = React.createClass({
         React.createElement(
           'h1',
           { className: 'display-4' },
-          'REST CALL Assignment'
+          'REST API CALL Assignment'
         ),
         React.createElement(
           'p',
