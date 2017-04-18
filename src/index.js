@@ -5,7 +5,6 @@ require('./sass/style.sass');
 var MainPage = React.createClass({
   getInitialState:function(){
     return {
-      original: [],
       api: [],
       tags: [
         { tag: "tag1", checked: false},
@@ -71,7 +70,7 @@ var MainPage = React.createClass({
   },
   componentWillMount:function(){
     this.fetchDate(function(json){
-      this.setState({original:json, api:json});
+      this.setState({api:json});
     }.bind(this));
     $(function(){
       $('.tagcheck').click(function(){
@@ -88,7 +87,6 @@ var MainPage = React.createClass({
   },
   reorder:function(){
     this.fetchDate(function(api){
-      var api = this.state.original;
       if (this.state.hasChecked) api = this.sortTag(api);
       api = this.changeRows(api);
       api.sort(function(a, b){

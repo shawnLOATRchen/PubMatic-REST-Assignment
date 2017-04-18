@@ -9561,7 +9561,6 @@ var MainPage = React.createClass({
 
   getInitialState: function getInitialState() {
     return {
-      original: [],
       api: [],
       tags: [{ tag: "tag1", checked: false }, { tag: 'tag2', checked: false }, { tag: 'tag3', checked: false }],
       order: 'regular',
@@ -9707,7 +9706,7 @@ var MainPage = React.createClass({
   },
   componentWillMount: function componentWillMount() {
     this.fetchDate(function (json) {
-      this.setState({ original: json, api: json });
+      this.setState({ api: json });
     }.bind(this));
     $(function () {
       $('.tagcheck').click(function () {
@@ -9724,7 +9723,6 @@ var MainPage = React.createClass({
   },
   reorder: function reorder() {
     this.fetchDate(function (api) {
-      var api = this.state.original;
       if (this.state.hasChecked) api = this.sortTag(api);
       api = this.changeRows(api);
       api.sort(function (a, b) {
