@@ -9615,26 +9615,40 @@ var MainPage = React.createClass({
       { className: 'container' },
       React.createElement(
         'div',
+        { className: 'jumbotron' },
+        React.createElement(
+          'h1',
+          { className: 'display-4' },
+          'REST CALL Assignment'
+        ),
+        React.createElement(
+          'p',
+          { className: 'lead' },
+          'Author: Yuxiang(Shawn) Chen'
+        )
+      ),
+      React.createElement(
+        'div',
         { className: 'row btn-box' },
         React.createElement(
           'button',
-          { type: 'button', className: 'btn btn-secondary col-4', onClick: this.sortByUpdated },
+          { type: 'button', className: 'btn btn-secondary col-md-4 ', onClick: this.sortByUpdated },
           'Sort by last updated'
         ),
         React.createElement(
           'button',
-          { type: 'button', className: 'btn btn-secondary col-4', onClick: this.sortByExecuted },
+          { type: 'button', className: 'btn btn-secondary col-md-4 ', onClick: this.sortByExecuted },
           'Sorted by last executed'
         ),
         React.createElement(
           'div',
-          { className: 'input-group input-group-md col-3 rows-shown' },
+          { className: 'input-group input-group-md col-md-3 rows-shown' },
           React.createElement(
             'span',
             { className: 'input-group-addon', id: 'sizing-addon1' },
             'Rows Shown'
           ),
-          React.createElement('input', { type: 'text', className: 'form-control', ref: 'rows', onChange: this.changeRows, placeholder: '10' })
+          React.createElement('input', { type: 'text', className: 'form-control', ref: 'rows', onChange: this.reorder, placeholder: '10' })
         )
       ),
       React.createElement(
@@ -9692,25 +9706,46 @@ var MainPage = React.createClass({
     );
   },
   componentWillMount: function componentWillMount() {
-    this.getApi();
+    this.fetchDate(function (json) {
+      this.setState({ original: json, api: json });
+    }.bind(this));
+    $(function () {
+      $('.tagcheck').click(function () {
+        $(this).parent('label').toggleClass('tag-checked');
+      });
+    });
   },
-  getApi: function getApi() {
-    var _this = this;
-
+  fetchDate: function fetchDate(fnc) {
     fetch('/api').then(function (data) {
       return data.json();
     }).then(function (json) {
-      _this.setState({ original: json, api: json });
+      fnc(json);
     });
   },
-  changeRows: function changeRows() {
-    var api = this.state.original;
+  reorder: function reorder() {
+    this.fetchDate(function (api) {
+      var api = this.state.original;
+      if (this.state.hasChecked) api = this.sortTag(api);
+      api = this.changeRows(api);
+      api.sort(function (a, b) {
+        if (this.state.order === 'updated') {
+          return new Date(b.datetimes.updated).getTime() - new Date(a.datetimes.updated).getTime();
+        } else if (this.state.order === 'executed') {
+          return new Date(b.datetimes.lastExecuted).getTime() - new Date(a.datetimes.lastExecuted).getTime();
+        } else {
+          return 0;
+        }
+      }.bind(this));
+      this.setState({ api: api });
+    }.bind(this));
+  },
+  changeRows: function changeRows(api) {
     var len = Math.min(api.length, this.refs.rows.value);
     len = len == 0 ? api.length : len;
     var newApi = [];
     for (var i = 0; i < len; i++) {
       newApi.push(api[i]);
-    }this.setState({ api: newApi });
+    }return newApi;
   },
   checkTag: function checkTag(e) {
     var tags = this.state.tags;
@@ -9720,47 +9755,31 @@ var MainPage = React.createClass({
       if (tag.checked) hasChecked = true;
     });
     this.setState({ tags: tags, hasChecked: hasChecked }, function () {
-      this.sortTag();
+      this.reorder();
     });
   },
-  sortTag: function sortTag() {
-    if (this.state.hasChecked) {
-      var api = this.state.original;
-      var newApi = [];
-      api.forEach(function (item) {
-        var fit = true;
-        this.state.tags.forEach(function (tag) {
-          if (tag.checked && !item.tags.includes(tag.tag)) {
-            fit = false;
-          }
-        });
-        if (fit) newApi.push(item);
-      }.bind(this));
-      this.setState({ api: newApi });
-    } else {
-      this.getApi();
-    }
+  sortTag: function sortTag(api) {
+    var newApi = [];
+    api.forEach(function (item) {
+      var fit = true;
+      this.state.tags.forEach(function (tag) {
+        if (tag.checked && !item.tags.includes(tag.tag)) {
+          fit = false;
+        }
+      });
+      if (fit) newApi.push(item);
+    }.bind(this));
+    return newApi;
   },
   sortByUpdated: function sortByUpdated() {
-    this.sortApi(function (a, b) {
-      var aTime = new Date(a.datetimes.updated);
-      var bTime = new Date(b.datetimes.updated);
-      return bTime.getTime() - aTime.getTime();
+    this.setState({ order: 'updated' }, function () {
+      this.reorder();
     });
-    this.setState({ order: 'updated' });
   },
   sortByExecuted: function sortByExecuted() {
-    this.sortApi(function (a, b) {
-      var aTime = new Date(a.datetimes.lastExecuted);
-      var bTime = new Date(b.datetimes.lastExecuted);
-      return bTime.getTime() - aTime.getTime();
+    this.setState({ order: 'executed' }, function () {
+      this.reorder();
     });
-    this.setState({ order: 'executed' });
-  },
-  sortApi: function sortApi(compare) {
-    var api = this.state.api;
-    api.sort(compare);
-    this.setState({ api: api });
   },
   getFormatedTime: function getFormatedTime(str) {
     var time = new Date(str);
@@ -9772,7 +9791,6 @@ var MainPage = React.createClass({
     var minute = time.getMinutes() < 10 ? '0' + time.getMinutes() : time.getMinutes();
     return hour + ':' + minute + ' ' + date + '/' + month + '/' + year;
   }
-
 });
 
 // Put component into main page
@@ -11705,7 +11723,7 @@ exports = module.exports = __webpack_require__(87)(undefined);
 
 
 // module
-exports.push([module.i, "#mainpage {\n  text-align: center; }\n  #mainpage .btn-box {\n    margin: 20px auto;\n    justify-content: space-around; }\n  #mainpage .tagcheck {\n    display: none; }\n  #mainpage .tag-checked {\n    background-color: #31b0d5; }\n  #mainpage table {\n    text-align: left;\n    margin-top: 20px; }\n", ""]);
+exports.push([module.i, "#mainpage {\n  text-align: center; }\n  #mainpage .jumbotron {\n    margin-top: 20px; }\n  #mainpage .btn-box {\n    margin: 20px auto;\n    justify-content: space-around; }\n    #mainpage .btn-box button, #mainpage .btn-box .rows-shown {\n      margin: 10px 0; }\n    #mainpage .btn-box .rows-shown {\n      padding: 0; }\n  #mainpage .tagcheck {\n    display: none; }\n  #mainpage .tag-checked {\n    background-color: #31b0d5; }\n  #mainpage table {\n    text-align: left;\n    margin-top: 20px; }\n\nfooter {\n  text-align: center;\n  margin: 30px;\n  color: #aaa; }\n", ""]);
 
 // exports
 

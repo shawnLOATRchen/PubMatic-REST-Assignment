@@ -40,12 +40,16 @@ var MainPage = React.createClass({
     }.bind(this));
     return (
       <div className="container">
+        <div className="jumbotron">
+            <h1 className="display-4">REST CALL Assignment</h1>
+            <p className="lead">Author: Yuxiang(Shawn) Chen</p>
+        </div>
         <div className="row btn-box">
-          <button type="button" className="btn btn-secondary col-4" onClick={this.sortByUpdated} >Sort by last updated</button>
-          <button type="button" className="btn btn-secondary col-4" onClick={this.sortByExecuted} >Sorted by last executed</button>
-          <div className="input-group input-group-md col-3 rows-shown">
+          <button type="button" className="btn btn-secondary col-md-4 " onClick={this.sortByUpdated} >Sort by last updated</button>
+          <button type="button" className="btn btn-secondary col-md-4 " onClick={this.sortByExecuted} >Sorted by last executed</button>
+          <div className="input-group input-group-md col-md-3 rows-shown">
             <span className="input-group-addon" id="sizing-addon1">Rows Shown</span>
-            <input type="text" className="form-control" ref="rows" onChange={this.changeRows} placeholder="10"/>
+            <input type="text" className="form-control" ref="rows" onChange={this.reorder} placeholder="10"/>
           </div>
         </div>
         <h5> Choose Tags </h5>
@@ -66,22 +70,46 @@ var MainPage = React.createClass({
     );
   },
   componentWillMount:function(){
-    this.getApi();
+    this.fetchDate(function(json){
+      this.setState({original:json, api:json});
+    }.bind(this));
+    $(function(){
+      $('.tagcheck').click(function(){
+        $(this).parent('label').toggleClass('tag-checked')
+      })
+    });
   },
-  getApi:function(){
+  fetchDate:function(fnc){
     fetch('/api').then(function(data){
       return data.json();
     }).then( json => {
-      this.setState({original:json, api:json});
+      fnc(json);
     });
   },
-  changeRows:function(){
-    var api = this.state.original;
+  reorder:function(){
+    this.fetchDate(function(api){
+      var api = this.state.original;
+      if (this.state.hasChecked) api = this.sortTag(api);
+      api = this.changeRows(api);
+      api.sort(function(a, b){
+        if (this.state.order === 'updated'){
+          return (new Date(b.datetimes.updated).getTime())-(new Date(a.datetimes.updated).getTime());
+        } else if (this.state.order === 'executed'){
+          return (new Date(b.datetimes.lastExecuted).getTime())-(new Date(a.datetimes.lastExecuted).getTime());
+        } else {
+          return 0;
+        }
+      }.bind(this))
+      this.setState({ api: api});
+    }.bind(this));
+
+  },
+  changeRows:function(api){
     var len = Math.min(api.length, this.refs.rows.value);
     len = len == 0 ? api.length : len;
     var newApi = [];
     for(var i = 0; i < len; i++) newApi.push(api[i]);
-    this.setState({ api: newApi});
+    return newApi;
   },
   checkTag:function(e){
     var tags = this.state.tags;
@@ -91,47 +119,31 @@ var MainPage = React.createClass({
       if (tag.checked) hasChecked = true;
     })
     this.setState({tags: tags, hasChecked: hasChecked}, function(){
-      this.sortTag()
+      this.reorder();
     });
   },
-  sortTag:function(){
-    if (this.state.hasChecked){
-      var api = this.state.original;
-      var newApi = [];
-      api.forEach(function(item){
-        var fit = true;
-        this.state.tags.forEach(function(tag){
-          if (tag.checked && !item.tags.includes(tag.tag)) {
-            fit = false;
-          }
-        })
-        if (fit) newApi.push(item);
-      }.bind(this))
-      this.setState({ api: newApi});
-    }else{
-      this.getApi();
-    }
+  sortTag:function(api){
+    var newApi = [];
+    api.forEach(function(item){
+      var fit = true;
+      this.state.tags.forEach(function(tag){
+        if (tag.checked && !item.tags.includes(tag.tag)) {
+          fit = false;
+        }
+      })
+      if (fit) newApi.push(item);
+    }.bind(this))
+    return newApi;
   },
   sortByUpdated:function(){
-    this.sortApi(function(a, b){
-      const aTime = new Date(a.datetimes.updated);
-      const bTime = new Date(b.datetimes.updated);
-      return bTime.getTime()-aTime.getTime();
-    })
-    this.setState({ order: 'updated'});
+    this.setState({ order: 'updated'},function(){
+      this.reorder();
+    });
   },
   sortByExecuted:function(){
-    this.sortApi(function(a, b){
-      const aTime = new Date(a.datetimes.lastExecuted);
-      const bTime = new Date(b.datetimes.lastExecuted);
-      return bTime.getTime()-aTime.getTime();
-    })
-    this.setState({ order: 'executed'});
-  },
-  sortApi:function(compare){
-    var api = this.state.api;
-    api.sort(compare);
-    this.setState({ api: api});
+    this.setState({ order: 'executed'},function(){
+      this.reorder();
+    });
   },
   getFormatedTime:function(str){
     const time = new Date(str);
@@ -142,8 +154,7 @@ var MainPage = React.createClass({
     var hour = time.getHours() < 10 ? '0'+time.getHours() : time.getHours();
     var minute = time.getMinutes() < 10 ? '0'+time.getMinutes() : time.getMinutes();
     return hour+':'+minute+' '+date+'/'+month+'/'+year;
-  },
-
+  }
 });
 
 // Put component into main page
