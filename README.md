@@ -4,9 +4,9 @@ PubMatic REST API Assignment
 ## Demo
 
 - Clone or download the repo
-- direct inside the project
-- run `npm install` to install the dependencies
-- run `node app` to run the project, the project is host on localhost:3000
+- Go to the directory of the project
+- Run `npm install` to install the dependencies
+- Run `node app` to run the project, the project is host on localhost:3000
 
 ## Description
 
@@ -18,5 +18,5 @@ PubMatic REST API Assignment
 
 ## Result
 
-- finish all the requirement, including bonus.
-- finish time: 4 hours
+- Finish all the requirement, including bonus.
+- Finish time: 4 hours
