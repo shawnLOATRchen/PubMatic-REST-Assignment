@@ -9560,14 +9560,18 @@ var MainPage = React.createClass({
   displayName: 'MainPage',
 
   getInitialState: function getInitialState() {
-    return { api: [] };
+    return {
+      original: [],
+      api: [],
+      tags: [{ tag: "tag1", checked: false }, { tag: 'tag2', checked: false }, { tag: 'tag3', checked: false }],
+      order: 'regular',
+      hasChecked: false
+    };
   },
   render: function render() {
-    var _this = this;
-
     var api = this.state.api.map(function (item, i) {
-      var updated = new Date(item.datetimes.updated);
-      var executed = new Date(item.datetimes.lastExecuted);
+      var updated = this.getFormatedTime(item.datetimes.updated);
+      var executed = this.getFormatedTime(item.datetimes.lastExecuted);
       return React.createElement(
         'tr',
         { key: i },
@@ -9589,15 +9593,23 @@ var MainPage = React.createClass({
         React.createElement(
           'td',
           null,
-          updated.getDate()
+          updated
         ),
         React.createElement(
           'td',
           null,
-          executed.getDate()
+          executed
         )
       );
-    });
+    }.bind(this));
+    var tags = this.state.tags.map(function (item, i) {
+      return React.createElement(
+        'label',
+        { className: 'btn btn-info', key: i },
+        React.createElement('input', { type: 'checkbox', className: 'tagcheck', checked: item.checked, onClick: this.checkTag, value: item.tag }),
+        item.tag
+      );
+    }.bind(this));
     return React.createElement(
       'div',
       { className: 'container' },
@@ -9606,16 +9618,34 @@ var MainPage = React.createClass({
         { className: 'row btn-box' },
         React.createElement(
           'button',
-          { type: 'button', className: 'btn btn-secondary col-6', onClick: function onClick() {
-              _this.sortByUpdated();
-            } },
+          { type: 'button', className: 'btn btn-secondary col-4', onClick: this.sortByUpdated },
           'Sort by last updated'
         ),
         React.createElement(
           'button',
-          { type: 'button', className: 'btn btn-secondary col-6', onClick: this.sortByExecuted },
+          { type: 'button', className: 'btn btn-secondary col-4', onClick: this.sortByExecuted },
           'Sorted by last executed'
+        ),
+        React.createElement(
+          'div',
+          { className: 'input-group input-group-md col-3 rows-shown' },
+          React.createElement(
+            'span',
+            { className: 'input-group-addon', id: 'sizing-addon1' },
+            'Rows Shown'
+          ),
+          React.createElement('input', { type: 'text', className: 'form-control', ref: 'rows', onChange: this.changeRows, placeholder: '10' })
         )
+      ),
+      React.createElement(
+        'h5',
+        null,
+        ' Choose Tags '
+      ),
+      React.createElement(
+        'div',
+        { className: 'btn-group' },
+        tags
       ),
       React.createElement(
         'table',
@@ -9662,13 +9692,54 @@ var MainPage = React.createClass({
     );
   },
   componentWillMount: function componentWillMount() {
-    var _this2 = this;
+    this.getApi();
+  },
+  getApi: function getApi() {
+    var _this = this;
 
     fetch('/api').then(function (data) {
       return data.json();
     }).then(function (json) {
-      _this2.setState({ api: json });
+      _this.setState({ original: json, api: json });
     });
+  },
+  changeRows: function changeRows() {
+    var api = this.state.original;
+    var len = Math.min(api.length, this.refs.rows.value);
+    len = len == 0 ? api.length : len;
+    var newApi = [];
+    for (var i = 0; i < len; i++) {
+      newApi.push(api[i]);
+    }this.setState({ api: newApi });
+  },
+  checkTag: function checkTag(e) {
+    var tags = this.state.tags;
+    var hasChecked = false;
+    tags.forEach(function (tag) {
+      if (tag.tag == e.target.value) tag.checked = !tag.checked;
+      if (tag.checked) hasChecked = true;
+    });
+    this.setState({ tags: tags, hasChecked: hasChecked }, function () {
+      this.sortTag();
+    });
+  },
+  sortTag: function sortTag() {
+    if (this.state.hasChecked) {
+      var api = this.state.original;
+      var newApi = [];
+      api.forEach(function (item) {
+        var fit = true;
+        this.state.tags.forEach(function (tag) {
+          if (tag.checked && !item.tags.includes(tag.tag)) {
+            fit = false;
+          }
+        });
+        if (fit) newApi.push(item);
+      }.bind(this));
+      this.setState({ api: newApi });
+    } else {
+      this.getApi();
+    }
   },
   sortByUpdated: function sortByUpdated() {
     this.sortApi(function (a, b) {
@@ -9676,6 +9747,7 @@ var MainPage = React.createClass({
       var bTime = new Date(b.datetimes.updated);
       return bTime.getTime() - aTime.getTime();
     });
+    this.setState({ order: 'updated' });
   },
   sortByExecuted: function sortByExecuted() {
     this.sortApi(function (a, b) {
@@ -9683,12 +9755,24 @@ var MainPage = React.createClass({
       var bTime = new Date(b.datetimes.lastExecuted);
       return bTime.getTime() - aTime.getTime();
     });
+    this.setState({ order: 'executed' });
   },
   sortApi: function sortApi(compare) {
-    var newapi = this.state.api;
-    newapi.sort(compare);
-    this.setState({ api: newapi });
+    var api = this.state.api;
+    api.sort(compare);
+    this.setState({ api: api });
+  },
+  getFormatedTime: function getFormatedTime(str) {
+    var time = new Date(str);
+    var year = time.getFullYear();
+    var month = time.getMonth() + 1;
+    month = month < 10 ? '0' + month : month;
+    var date = time.getDate() < 10 ? '0' + time.getDate() : time.getDate();
+    var hour = time.getHours() < 10 ? '0' + time.getHours() : time.getHours();
+    var minute = time.getMinutes() < 10 ? '0' + time.getMinutes() : time.getMinutes();
+    return hour + ':' + minute + ' ' + date + '/' + month + '/' + year;
   }
+
 });
 
 // Put component into main page
@@ -11621,7 +11705,7 @@ exports = module.exports = __webpack_require__(87)(undefined);
 
 
 // module
-exports.push([module.i, "#mainpage .btn-box {\n  margin: 20px auto; }\n", ""]);
+exports.push([module.i, "#mainpage {\n  text-align: center; }\n  #mainpage .btn-box {\n    margin: 20px auto;\n    justify-content: space-around; }\n  #mainpage .tagcheck {\n    display: none; }\n  #mainpage .tag-checked {\n    background-color: #31b0d5; }\n  #mainpage table {\n    text-align: left;\n    margin-top: 20px; }\n", ""]);
 
 // exports
 
